@@ -1,0 +1,255 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+typedef struct
+{
+	char titulo[100];
+	char autor[50];
+	int anio;
+}book;
+
+void agregar(book *a, int c1);
+void mostrar(book *a, int c1);
+void guardar(book *a, int c1);
+void cargar(book *a, int c1);
+void buscar1(book *a, int c1);
+void buscar2(book *a, int c1);
+
+int main(int argc, char *argv[]) 
+{
+	int c1, opc, b=0, b2=0;
+	
+	printf("CANTIDAD DE LIBROS A INGRESAR: ");
+	scanf("%d", &c1);
+	printf("\n\n");
+	book libro[c1];
+	do
+	{
+		printf("------MENU------\n");
+		printf("--AGREGAR LIBRO: (1)\n");
+		printf("MOSTRAR LISTADO: (2)\n");
+		printf("--------GUARDAR: (3)\n");
+		printf("---------CARGAR: (4)\n");
+		printf("---BUSCAR LIBRO: (5)\n");
+		printf("----------SALIR: (0)\n");
+		printf("Ingrese una opcion: ");
+		scanf("%d", &opc);
+		switch(opc)
+		{
+		case 1:
+			agregar(libro, c1);
+			b=1;
+			break;
+		case 2:
+			if(b==1)
+			{
+				mostrar(libro, c1);
+			}	
+			else printf("No se cargaron libros: \n");
+			break;
+		case 3:
+			if(b==1)
+			{
+				guardar(libro, c1);
+			}else printf("No se cargaron libros: \n");
+			break;
+		case 4:
+			cargar(libro, c1);
+			b=1;
+			break;
+		case 5:
+			printf("\n");
+			printf("-------BUSCAR: \n");
+			printf("DESDE TECLADO: (1)\n");
+			printf("DESDE ARCHIVO: (2)\n");
+			printf("-------OPCION: ");
+			scanf("%d", &b2);
+			if(b2=1)
+			{
+				buscar1(libro, c1);
+			}	
+			else printf("opcion incorrecta: \n");
+			
+			break;
+		case 0:
+			printf("SALIENDO...\n");
+			break;
+			
+		default:
+			printf("ERROR: opcion incorrecta \n");
+		}
+		
+	}while(opc!=0);
+	
+	return 0;
+}
+
+void agregar(book *a, int c1)
+{
+	int i;
+	printf("\n");
+	for(i=0; i<c1; i=i+1)
+	{
+		getchar();
+		printf("   TITULO DEL LIBRO: ");
+		fgets(a[i].titulo, sizeof(a[i].titulo), stdin);
+		a[i].titulo[strcspn(a[i].titulo, "\n")] = '\0';
+		printf("\n");
+		
+		
+		printf("    AUTOR DEL LIBRO: ");
+		fgets(a[i].autor, sizeof(a[i].autor), stdin);
+		a[i].autor[strcspn(a[i].autor, "\n")] = '\0';
+		printf("\n");
+		
+		printf("ANIO DE PUBLICACION: ");
+		scanf("%d", &a[i].anio);
+		printf("\n");
+	}	
+}	
+void mostrar(book *a, int c1)
+{
+	int i;
+	printf("\n");
+	printf("LISTADO DE LIBROS: \n");
+	for(i=0; i<c1; i=i+1)
+	{
+		printf("TITULO: %s\n", a[i].titulo);
+		printf("AUTOR: %s\n", a[i].autor);
+		printf("ANIO DE PUBLICACION: %d\n", a[i].anio);
+		printf("\n\n");
+	}	
+}	
+void guardar(book *a, int c1)
+{
+	char aux[40];
+	FILE *AR;
+	int i; 
+	printf("nota: no olvide agregar (.txt) al final\n");
+	printf("-----------INGRESE NOMBRE DE SU ARCHIVO: ");
+	fgets(aux, sizeof(aux), stdin);
+	
+	gets(aux);
+	
+	AR= fopen(aux, "w");
+	if(AR==NULL)
+	{
+		printf("ERROR: no se pudo generar el archivo: \n");
+	}	
+	else
+	{
+		printf("Archivo abierto con exito: \n");
+		for(i=0; i<c1; i=i+1)
+		{
+			fprintf(AR, "%s\n", a[i].titulo);
+			fprintf(AR, "%s\n", a[i].autor);
+			fprintf(AR, "%d\n", a[i].anio);
+			
+			
+		}	
+		printf("\n");
+	}	
+	fclose(AR);
+}	
+
+void cargar(book *a, int c1)
+{
+	int i;
+	char aux[40];
+	FILE *AR;
+	
+	printf("nota: no olvide agregar (.txt) al final\n");
+	printf("------------NOMBRE DEL ARCHIVO DE TEXTO: ");
+	scanf("%s", aux);
+	getchar();
+	
+	AR= fopen(aux, "r");
+	if(AR == NULL)
+	{
+		printf("ERROR: no se pudo abrir al archivo \n");
+		printf("(NO EXISTE O HAY UN ERROR)\n");
+	}	
+	else
+	{
+		printf("Archivo abierto y generado con exito: \n");
+		
+		for(i=0; i<c1; i=i+1)
+		{
+			fscanf(AR, "%s", a[i].titulo);
+			fscanf(AR, "%s", a[i].autor);
+			fscanf(AR, "%d", &a[i].anio);
+		}	
+	}   
+	fclose(AR);
+	
+}	
+void buscar1(book *a, int c1)
+{
+	int b3=0, i;
+	int na;
+	char aux[40];
+	printf("\n");
+	printf("POR QUE PARAMETRO DESEA BUSCAR? \n");
+	printf("-------------TITULO: (1)\n");
+	printf("--------------AUTOR: (2)\n");
+	printf("ANIO DE PUBLICACION: (3)\n");
+	scanf("%d", &b3);
+
+	if(b3==1)
+	{
+		printf("\n\n");
+		getchar();
+		printf("INGRESE TITULO A BUSCAR: ");
+		gets(aux);
+		printf("\n");
+		
+		for(i=0; i<c1; i=i+1)
+		{
+			if(strlen(a[i].titulo)== strlen(aux))
+			{
+				printf("ENCONTRADO: %d\n", i+1);
+				printf("AUXILIAR: %s\n", aux);
+				printf("  TITULO: %s\n", a[i].titulo);
+			}	
+		}	
+	}
+	if(b3==2)
+	{
+		printf("\n\n");
+		getchar();
+		printf("INGRESE AUTOR A BUSCAR: ");
+		gets(aux);
+		printf("\n");
+		
+		for(i=0; i<c1; i=i+1)
+		{
+			if(strlen(a[i].autor)== strlen(aux))
+			{
+				printf("ENCONTRADO: %d\n", i+1);
+				printf("AUXILIAR: %s\n", aux);
+				printf("  TITULO: %s\n", a[i].autor);
+			}	
+		}	
+	}
+	if(b3==3)
+	{
+		printf("\n\n");
+		getchar();
+		printf("INGRESE ANIO A BUSCAR: ");
+		scanf("%d", &na);
+		printf("\n");
+		
+		for(i=0; i<c1; i=i+1)
+		{
+			if(na == a[i].anio)
+			{
+				printf("ENCONTRADO: %d\n", i+1);
+				printf("AUXILIAR: %d\n", na);
+				printf("  TITULO: %d\n", a[i].anio);
+			}	
+		}	
+	}
+	
+}
