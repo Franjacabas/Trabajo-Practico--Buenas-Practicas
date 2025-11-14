@@ -1,0 +1,181 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+typedef struct {
+	char titulo[100];
+	char autor[50];
+	int anio;
+} Libro;
+
+// Prototipos
+void limpiarBuffer();
+void convertirAMinusculas(char *cadena);
+void agregarLibros(Libro *lista, int cantidad);
+void mostrarListado(Libro *lista, int cantidad);
+void guardarLibros(Libro *lista, int cantidad);
+void cargarLibros(Libro *lista, int cantidad);
+void buscarLibroPorTeclado(Libro *lista, int cantidad);
+void buscarLibroPorArchivo(int cantidadLibrosEsperada);
+
+int main(int argc, char *argv[]) {
+	int cantidadLibros, opcion, librosCargados = 0;
+	printf("CANTIDAD DE LIBROS A INGRESAR: ");
+	if (scanf("%d", &cantidadLibros) != 1 || cantidadLibros <= 0) return 1;
+	limpiarBuffer();
+	
+	Libro listaLibros[cantidadLibros]; // VLA
+	
+	do {
+		printf("\n--- MENU ---\n(1) Agregar | (2) Mostrar | (3) Guardar | (4) Cargar | (5) Buscar | (0) Salir\nOpcion: ");
+		if (scanf("%d", &opcion) != 1) { limpiarBuffer(); opcion = -1; continue; }
+		limpiarBuffer();
+
+		switch(opcion) {
+		case 1: agregarLibros(listaLibros, cantidadLibros); librosCargados = 1; break;
+		case 2: (librosCargados) ? mostrarListado(listaLibros, cantidadLibros) : printf("No se cargaron libros.\n"); break;
+		case 3: (librosCargados) ? guardarLibros(listaLibros, cantidadLibros) : printf("No hay libros para guardar.\n"); break;
+		case 4: cargarLibros(listaLibros, cantidadLibros); librosCargados = 1; break;
+		case 5: {
+			int tipoBusqueda = 0;
+			printf("\n(1) Desde Teclado | (2) Desde Archivo\nOpcion de Busqueda: ");
+			if (scanf("%d", &tipoBusqueda) != 1) { limpiarBuffer(); break; }
+			limpiarBuffer();
+			if(tipoBusqueda == 1) (librosCargados) ? buscarLibroPorTeclado(listaLibros, cantidadLibros) : printf("No hay libros cargados en memoria.\n"); 
+			else if (tipoBusqueda == 2) buscarLibroPorArchivo(cantidadLibros); 
+			else printf("Opcion incorrecta.\n");
+			break;
+		}
+		case 0: printf("SALIENDO...\n"); break;
+		default: printf("ERROR: Opcion incorrecta.\n");
+		}
+	} while(opcion != 0);
+	return 0;
+}
+
+// FUNCIONES DE APOYO (Limpieza y utilidades)
+void limpiarBuffer() { int c; while ((c = getchar()) != '\n' && c != EOF); }
+void convertirAMinusculas(char *cadena) { for (int i = 0; cadena[i]; i++) { cadena[i] = tolower((unsigned char) cadena[i]); } }
+
+// FUNCIONES DEL PARCIAL (Implementación)
+void agregarLibros(Libro *lista, int cantidad) {
+	for(int i = 0; i < cantidad; i++) {
+		printf("\n--- LIBRO %d ---\nTITULO: ", i + 1);
+		fgets(lista[i].titulo, sizeof(lista[i].titulo), stdin);
+		lista[i].titulo[strcspn(lista[i].titulo, "\n")] = '\0';
+		printf("AUTOR: ");
+		fgets(lista[i].autor, sizeof(lista[i].autor), stdin);
+		lista[i].autor[strcspn(lista[i].autor, "\n")] = '\0';
+		printf("ANIO: ");
+		if (scanf("%d", &lista[i].anio) != 1) { lista[i].anio = 0; limpiarBuffer(); } else limpiarBuffer();
+	}
+}	
+void mostrarListado(Libro *lista, int cantidad) {
+	printf("\nLISTADO DE LIBROS:\n");
+	for(int i = 0; i < cantidad; i++) {
+		printf("--- LIBRO %d ---\nTITULO: %s\nAUTOR: %s\nANIO: %d\n", i + 1, lista[i].titulo, lista[i].autor, lista[i].anio);
+	}	
+}	
+void guardarLibros(Libro *lista, int cantidad) {
+	char nombreArchivo[40];
+	printf("NOMBRE DE ARCHIVO (ej: libros.txt): ");
+	fgets(nombreArchivo, sizeof(nombreArchivo), stdin);
+	nombreArchivo[strcspn(nombreArchivo, "\n")] = '\0';
+	FILE *AR = fopen(nombreArchivo, "w");
+	if(AR == NULL) { printf("ERROR: No se pudo generar el archivo.\n"); return; }
+	fprintf(AR, "%d\n", cantidad); 
+	for(int i = 0; i < cantidad; i++) {
+		fprintf(AR, "%s\n", lista[i].titulo);
+		fprintf(AR, "%s\n", lista[i].autor);
+		fprintf(AR, "%d\n", lista[i].anio);
+	}	
+	printf("Libros guardados en '%s' con exito.\n", nombreArchivo);
+	fclose(AR);
+}	
+void cargarLibros(Libro *lista, int cantidad) {
+	char nombreArchivo[40];
+	int cantidadGuardada;
+	printf("NOMBRE DEL ARCHIVO DE TEXTO: ");
+	fgets(nombreArchivo, sizeof(nombreArchivo), stdin);
+	nombreArchivo[strcspn(nombreArchivo, "\n")] = '\0';
+	FILE *AR = fopen(nombreArchivo, "r");
+	if(AR == NULL) { printf("ERROR: No se pudo abrir el archivo.\n"); return; }
+	if (fscanf(AR, "%d\n", &cantidadGuardada) != 1) { printf("ERROR: Archivo corrupto.\n"); fclose(AR); return; }
+	int max_i = (cantidadGuardada < cantidad) ? cantidadGuardada : cantidad;
+	for(int i = 0; i < max_i; i++) {
+		if (fgets(lista[i].titulo, sizeof(lista[i].titulo), AR) == NULL) break;
+		lista[i].titulo[strcspn(lista[i].titulo, "\n")] = '\0';
+		if (fgets(lista[i].autor, sizeof(lista[i].autor), AR) == NULL) break;
+		lista[i].autor[strcspn(lista[i].autor, "\n")] = '\0';
+		if (fscanf(AR, "%d\n", &lista[i].anio) != 1) break;
+	}   
+	printf("Carga de %d libros exitosa.\n", max_i);
+	fclose(AR);
+}	
+void buscarLibroPorTeclado(Libro *lista, int cantidad) {
+	int opcionBusqueda, encontrados = 0;
+	int anioBusqueda;
+	char textoBusqueda[100], tempLibro[100], tempBusqueda[100];
+	printf("\nBuscar por (1) TITULO, (2) AUTOR, (3) ANIO: ");
+	if (scanf("%d", &opcionBusqueda) != 1) { limpiarBuffer(); return; }
+	limpiarBuffer();
+	if(opcionBusqueda == 1 || opcionBusqueda == 2) {
+		printf("Ingrese %s a buscar: ", (opcionBusqueda == 1) ? "TITULO" : "AUTOR");
+		fgets(textoBusqueda, sizeof(textoBusqueda), stdin);
+		textoBusqueda[strcspn(textoBusqueda, "\n")] = '\0';
+		strcpy(tempBusqueda, textoBusqueda); convertirAMinusculas(tempBusqueda);
+		for(int i = 0; i < cantidad; i++) {
+			const char *campoLibro = (opcionBusqueda == 1) ? lista[i].titulo : lista[i].autor;
+			strcpy(tempLibro, campoLibro); convertirAMinusculas(tempLibro);
+			if(strstr(tempLibro, tempBusqueda) != NULL) {
+				printf("ENCONTRADO (%s): %s (en posicion %d)\n", textoBusqueda, campoLibro, i + 1); encontrados++;
+			}
+		}
+	} else if(opcionBusqueda == 3) {
+		printf("INGRESE ANIO A BUSCAR: ");
+		if (scanf("%d", &anioBusqueda) != 1) { limpiarBuffer(); return; }
+		limpiarBuffer();
+		for(int i = 0; i < cantidad; i++) {
+			if(anioBusqueda == lista[i].anio) {
+				printf("ENCONTRADO (ANIO %d): %s (en posicion %d)\n", anioBusqueda, lista[i].titulo, i + 1); encontrados++;
+			}	
+		}	
+	}
+	if (encontrados == 0) printf("No se encontraron coincidencias.\n");
+}
+void buscarLibroPorArchivo(int cantidadLibrosEsperada) {
+    char nombreArchivoBusqueda[40], nombreArchivoDatos[40], campoBusqueda[100] = {0};
+    int anioBusqueda = 0, tipoBusqueda = 0, encontrados = 0;
+    
+    printf("\nARCHIVO CON CRITERIO (ej: buscar.txt): "); fgets(nombreArchivoBusqueda, sizeof(nombreArchivoBusqueda), stdin); nombreArchivoBusqueda[strcspn(nombreArchivoBusqueda, "\n")] = '\0';
+    FILE *aBusq = fopen(nombreArchivoBusqueda, "r");
+    if(aBusq == NULL) { printf("ERROR: No se pudo abrir el archivo de criterio.\n"); return; }	
+    if (fscanf(aBusq, "%d\n", &tipoBusqueda) != 1) { printf("ERROR: Falla al leer tipo de busqueda.\n"); fclose(aBusq); return; }
+    if (tipoBusqueda == 3) { if (fscanf(aBusq, "%d", &anioBusqueda) != 1) { fclose(aBusq); return; } } 
+    else if (tipoBusqueda == 1 || tipoBusqueda == 2) { 
+        if (fgets(campoBusqueda, sizeof(campoBusqueda), aBusq) == NULL) { fclose(aBusq); return; }
+        campoBusqueda[strcspn(campoBusqueda, "\n")] = '\0';
+    } else { printf("ERROR: Tipo de busqueda invalido.\n"); fclose(aBusq); return; }
+    fclose(aBusq);
+    
+    printf("ARCHIVO CON DATOS DE LIBROS (ej: libros.txt): "); fgets(nombreArchivoDatos, sizeof(nombreArchivoDatos), stdin); nombreArchivoDatos[strcspn(nombreArchivoDatos, "\n")] = '\0';
+    FILE *aDatos = fopen(nombreArchivoDatos, "r");
+    if(aDatos == NULL) { printf("ERROR: No se pudo abrir el archivo de datos.\n"); return; }
+    int cantidadGuardada;
+    if (fscanf(aDatos, "%d\n", &cantidadGuardada) != 1) { printf("ERROR: Archivo de datos corrupto.\n"); fclose(aDatos); return; }
+    
+    Libro libroActual; char tempLibro[100], tempBusqueda[100];
+    if (tipoBusqueda == 1 || tipoBusqueda == 2) { strcpy(tempBusqueda, campoBusqueda); convertirAMinusculas(tempBusqueda); }
+    for (int i = 0; i < cantidadGuardada; i++) {
+        if (fgets(libroActual.titulo, sizeof(libroActual.titulo), aDatos) == NULL) break; libroActual.titulo[strcspn(libroActual.titulo, "\n")] = '\0';
+        if (fgets(libroActual.autor, sizeof(libroActual.autor), aDatos) == NULL) break; libroActual.autor[strcspn(libroActual.autor, "\n")] = '\0';
+        if (fscanf(aDatos, "%d\n", &libroActual.anio) != 1) break;
+        
+        if (tipoBusqueda == 1) { strcpy(tempLibro, libroActual.titulo); convertirAMinusculas(tempLibro); if(strstr(tempLibro, tempBusqueda) != NULL) { printf("ENCONTRADO (Titulo '%s'): %s (pos %d)\n", campoBusqueda, libroActual.titulo, i + 1); encontrados++; } } 
+        else if (tipoBusqueda == 2) { strcpy(tempLibro, libroActual.autor); convertirAMinusculas(tempLibro); if(strstr(tempLibro, tempBusqueda) != NULL) { printf("ENCONTRADO (Autor '%s'): %s (pos %d)\n", campoBusqueda, libroActual.autor, i + 1); encontrados++; } } 
+        else if (tipoBusqueda == 3) { if (anioBusqueda == libroActual.anio) { printf("ENCONTRADO (Anio %d): %s (pos %d)\n", anioBusqueda, libroActual.titulo, i + 1); encontrados++; } }
+    }
+    if (encontrados == 0) printf("No se encontraron coincidencias en el archivo de datos.\n");
+    fclose(aDatos);
+}
